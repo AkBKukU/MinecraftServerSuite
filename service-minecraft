@@ -1,0 +1,217 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          minecraft
+# Required-Start:    $local_fs $remote_fs $network $syslog $named
+# Required-Stop:     $local_fs $remote_fs $network $syslog $named
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# X-Interactive:     true
+# Short-Description: Start/stop Minecraft server
+# Description:       Start the Minecraft server and associated helpers
+#  This script will start apache2, and possibly all associated instances.
+#  Moreover, it will set-up temporary directories and helper tools such as
+#  htcacheclean when required by the configuration.
+### END INIT INFO
+
+DESC="game server"
+NAME=minecraft
+DAEMON=/usr/sbin/$NAME
+
+SCRIPTNAME="${0##*/}"
+SCRIPTNAME="${SCRIPTNAME##[KS][0-9][0-9]}"
+
+function getpid()
+{
+	pid=p$(s -aux | grep minecraft-server | grep -v SCREEN | grep -v grep | awk '{print $2}')
+}
+
+#
+# Function that starts the daemon/service
+#
+do_start()
+{
+    # Return
+    #   0 if daemon has been started
+    #   1 if daemon was already running
+    #   2 if daemon could not be started
+
+	getpid
+	
+	if [ -z "$mypid" ]
+	then
+	
+		$DAEMON
+		getpid
+  		echo "$DESC was started with a PID of $mypid"
+  		return 0
+	else
+        echo "Portsentry was ALREADY running with a PID of $mypid"
+        return 1
+	
+	fi
+
+    if pidofproc -p $PIDFILE "$DAEMON" > /dev/null 2>&1 ; then
+            return 1
+    fi
+
+    if apache_conftest ; then
+            $APACHE2CTL start
+            apache_wait_start $?
+            return $?
+    else
+            APACHE2_INIT_MESSAGE="The apache2$DIR_SUFFIX configtest failed."
+            return 2
+    fi
+}
+
+
+#
+# Function that stops the daemon/service
+#
+do_stop()
+{
+    # Return
+    #   0 if daemon has been stopped
+    #   1 if daemon was already stopped
+    #   2 if daemon could not be stopped
+    #   other if a failure occurred
+
+    # either "stop" or "graceful-stop"
+    local STOP=$1
+    # can't use pidofproc from LSB here
+    local AP_RET=0
+
+    if pidof $DAEMON > /dev/null 2>&1 ; then
+            if [ -e $PIDFILE ] && pidof $DAEMON | tr ' ' '\n' | grep -w $(cat $PIDFILE) > /dev/null 2>&1 ; then
+                    AP_RET=2
+            else
+                    AP_RET=1
+            fi
+    else
+        AP_RET=0
+    fi
+
+    screen -S minecraft-server -X stuff "stop 
+    "
+
+}
+
+
+#
+# Function that sends a SIGHUP to the daemon/service
+#
+do_reload() {
+    if apache_conftest; then
+            if ! pidofproc -p $PIDFILE "$DAEMON" > /dev/null 2>&1 ; then
+                    APACHE2_INIT_MESSAGE="Apache2 is not running"
+                    return 2
+            fi
+            $APACHE2CTL graceful > /dev/null 2>&1
+            return $?
+    else
+            APACHE2_INIT_MESSAGE="The apache2$DIR_SUFFIX configtest failed. Not doing anything."
+            return 2
+    fi
+}
+
+
+case "$1" in
+  start)
+    log_daemon_msg "Starting $DESC" "$NAME"
+    do_start
+    RET_STATUS=$?
+    case "$RET_STATUS" in
+        0|1)
+            log_success_msg
+            [ "$VERBOSE" != no ] && [ $RET_STATUS = 1 ] && log_warning_msg "Server was already running"
+            if check_htcacheclean ; then
+                [ "$VERBOSE" != no ] && log_daemon_msg "Starting HTTP cache cleaning daemon" "htcacheclean"
+                start_htcacheclean
+                [ "$VERBOSE" != no ] && log_end_msg $?
+            fi
+            ;;
+        2)
+            log_failure_msg
+            print_error_msg
+            exit 1
+            ;;
+    esac
+    ;;
+  stop)
+    log_daemon_msg "Stopping $DESC" "$NAME"
+    do_stop "$1"
+    RET_STATUS=$?
+    case "$RET_STATUS" in
+        0|1)
+            log_success_msg
+            [ "$VERBOSE" != no ] && [ $RET_STATUS = 1 ] && log_warning_msg "Server was not running"
+            ;;
+        2)
+            log_failure_msg
+            print_error_msg
+            exit 1
+            ;;
+    esac
+    print_error_msg
+
+    if check_htcacheclean ; then
+        [ "$VERBOSE" != no ] && log_daemon_msg "Stopping HTTP cache cleaning daemon" "htcacheclean"
+        stop_htcacheclean
+        [ "$VERBOSE" != no ] && log_end_msg $?
+    fi
+
+    ;;
+  status)
+    status_of_proc -p $PIDFILE "apache2" "$NAME"
+    exit $?
+    ;;
+  reload)
+    log_daemon_msg "Reloading $DESC" "$NAME"
+    do_reload
+    RET_STATUS=$?
+    case "$RET_STATUS" in
+        0|1)
+            log_success_msg
+            [ "$VERBOSE" != no ] && [ $RET_STATUS = 1 ] && log_warning_msg "Server was already running"
+            ;;
+        2)
+            log_failure_msg
+            print_error_msg
+            exit 1
+            ;;
+    esac
+    print_error_msg
+    ;;
+  restart)
+    log_daemon_msg "Restarting $DESC" "$NAME"
+    do_stop stop
+    case "$?" in
+        0|1)
+            do_start
+            case "$?" in
+                0)
+                    log_end_msg 0
+                    ;;
+                1|*)
+                    log_end_msg 1 # Old process is still or failed to running
+                    print_error_msg
+                    exit 1
+                    ;;
+            esac
+            ;;
+        *)
+            # Failed to stop
+            log_end_msg 1
+            print_error_msg
+            exit 1
+            ;;
+    esac
+    ;;
+
+    echo "Usage: $SCRIPTNAME {start|stop|status|restart|reload}" >&2
+    exit 3
+    ;;
+esac
+
+exit 0
+

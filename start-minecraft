@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo Minecraft Server Starting
+cd /var/minecraft
+screen -dmS minecraft-server java -Xms2G -Xmx5G -jar ./minecraft-server.jar

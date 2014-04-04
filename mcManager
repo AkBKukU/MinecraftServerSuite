@@ -1,0 +1,91 @@
+#!/bin/bash
+
+mcmWebLoc="localhost/mcManager.php"
+
+# Prefered server version/type
+# vanilla
+# cb-rec
+# cb-beta
+# cb-dev
+serverType="vanilla"
+
+function getNewVanillaLink ()
+{
+	# Get current version link from my script
+	echo $(wget "$mcmWebLoc?getNewVanillaLink" -q -O -)
+}
+function getNewVanillaVersion ()
+{
+	# Get current version link from my script
+	echo $(wget "$mcmWebLoc?getNewVanillaVersion" -q -O -)
+}
+
+function getCurrentVersion ()
+{
+	echo $(wget "$mcmWebLoc?getCurrentVersion" -q -O -)
+}
+
+function checkForVanillaUpdate ()
+{
+	if [ $(getCurrentVersion) != $(getNewVanillaVersion) ]
+	then
+		echo "Not Up to Date!"
+	else
+		echo "Up to date"
+	fi
+}
+
+function installMinecraft ()
+{
+
+	# root test
+	if [[ $EUID -ne 0 ]] 
+	then
+   		echo "You need to run this as root to be able to make system changes"
+		echo -e "Run \"sudo $0 $1\" next time"
+		exit 1
+	fi
+
+	# Setup /var/minecraft
+	mkdir /var/minecraft
+
+	# Download program
+	case $serverType in 
+
+		'vanilla')
+				wget $(getNewVanillaLink) -O /var/minecraft/minecraft-server.jar
+			;;
+	esac
+
+	
+}
+
+case $1 in
+
+
+	'getNewVanillaLink')
+		getNewVanillaLink
+		;;
+
+	'getNewVanillaVersion')
+		getNewVanillaVersion
+		;;
+
+	'getCurrentVersion')
+		getCurrentVersion
+		;;
+
+	'checkForVanillaUpdate')
+		checkForVanillaUpdate
+		;;
+
+	'installMinecraft')
+		installMinecraft
+		;;
+
+
+	*)
+	    echo "Usage: $0 {getNewVanillaLink|getNewVanillaVersion|getCurrentVersion|checkForVanillaUpdate|installMinecraft}" >&2
+	    exit 3
+		;;
+esac
