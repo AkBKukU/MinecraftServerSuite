@@ -57,6 +57,10 @@ function installMinecraft ()
 			;;
 	esac
 
+	# Put files in place
+	cp start-minecraft /var/minecraft/minecraft
+	ln -s /var/minecraft/minecraft /usr/sbin/minecraft
+	cp service-minecraft /etc/init.d/minecraft
 	
 }
 

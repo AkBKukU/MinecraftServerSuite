@@ -14,15 +14,15 @@
 ### END INIT INFO
 
 DESC="game server"
-NAME=minecraft
+NAME="minecraft"
 DAEMON=/usr/sbin/$NAME
 
 SCRIPTNAME="${0##*/}"
 SCRIPTNAME="${SCRIPTNAME##[KS][0-9][0-9]}"
 
-function getpid()
+getpid()
 {
-	pid=p$(s -aux | grep minecraft-server | grep -v SCREEN | grep -v grep | awk '{print $2}')
+	mypid="$(ps -aux | grep minecraft-server | grep -v SCREEN | grep -v "grep" | awk '{print $2}')"
 }
 
 #
@@ -92,63 +92,56 @@ do_reload() {
 
 case "$1" in
   start)
-    log_daemon_msg "Starting $DESC" "$NAME"
+    echo "Starting $DESC" "$NAME"
     do_start
     RET_STATUS=$?
     case "$RET_STATUS" in
         0)
-            log_success_msg
+            
             
             ;;
 
         1)
-            log_success_msg
-            log_warning_msg "Server was already running"
+            
+            echo "Server was already running"
             
             ;;
         2)
-            log_failure_msg
-            print_error_msg
             exit 1
             ;;
     esac
     ;;
 
   stop)
-    log_daemon_msg "Stopping $DESC" "$NAME"
+    echo "Stopping $DESC" "$NAME"
     do_stop
     RET_STATUS=$?
     case "$RET_STATUS" in
         0)
-            log_success_msg
             
             ;;
 
         1)
-            log_success_msg
-            log_warning_msg "Server was not running"
+            echo "Server was not running"
             
             ;;
         2)
-        2)
-            log_failure_msg
-            print_error_msg
             exit 1
             ;;
     esac
 
     ;;
   status)
-    log_daemon_msg "$DESC $NAME is running at $(getpid)"
+    echo "$DESC $NAME is running at $(getpid)"
     exit $?
     ;;
 
-    ;;
   restart)
-    log_daemon_msg "Restarting $DESC" "$NAME"
+    echo "Restarting $DESC" "$NAME"
     do_reload
     ;;
 
+    *)
     echo "Usage: $SCRIPTNAME {start|stop|status|restart|reload}" >&2
     exit 3
     ;;
