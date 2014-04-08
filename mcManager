@@ -10,14 +10,36 @@ mcmWebLoc="localhost/mcManager.php"
 serverType="vanilla"
 
 function getNewVanillaLink ()
-{
-	# Get current version link from my script
-	echo $(wget "$mcmWebLoc?getNewVanillaLink" -q -O -)
+{	
+	PAGE="https://minecraft.net/download"
+
+	RAW_PAGE=$(wget "$PAGE" -q -O -)
+	after='.jar" class="download-link" data-dist="server"'
+	before="https"
+
+	end=$(awk -v a="$RAW_PAGE" -v b="$after" 'BEGIN{print index(a,b)}')
+	start=`expr $(awk -v a="${RAW_PAGE:$(expr $end - 120):120}" -v b="$before" 'BEGIN{print index(a,b)}') + $end - 121`
+	echo "${RAW_PAGE:$start:$(expr $end - $start)}jar"
 }
 function getNewVanillaVersion ()
 {
-	# Get current version link from my script
-	echo $(wget "$mcmWebLoc?getNewVanillaVersion" -q -O -)
+
+	PAGE="http://minecraft.gamepedia.com/Minecraft"
+
+	RAW_PAGE=$(wget "$PAGE" -q -O -)
+	close="<dt>Computer</dt>"
+	after='</a>'
+	before="\">"
+	HALF_PAGE=${RAW_PAGE:0:$(expr ${#RAW_PAGE} / 2 ) }
+
+	astart=$(awk -v a="$HALF_PAGE" -v b="$close" "BEGIN{print index(a,b)}")
+	area=${HALF_PAGE:$astart}
+
+	start=`expr $(awk -v a="$area" -v b="$before" 'BEGIN{print index(a,b)}') + $astart + 1`
+
+	end=$(awk -v a="${HALF_PAGE:$start}" -v b="$after" "BEGIN{print index(a,b)}")
+	echo "${HALF_PAGE:$start:$(expr $end - 1)}"
+
 }
 
 function getCurrentVersion ()
