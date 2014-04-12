@@ -13,16 +13,16 @@
 #  htcacheclean when required by the configuration.
 ### END INIT INFO
 
-DESC="game server"
-NAME="minecraft"
-DAEMON=/usr/sbin/$NAME
+DESC="Game server"
+NAME="Minecraft"
+DAEMON=/usr/sbin/minecraft
 
 SCRIPTNAME="${0##*/}"
 SCRIPTNAME="${SCRIPTNAME##[KS][0-9][0-9]}"
 
 getpid()
 {
-	mypid="$(ps -aux | grep minecraft-server | grep -v SCREEN | grep -v "grep" | awk '{print $2}')"
+	mypid="$(ps aux | grep minecraft-server | grep -v SCREEN | grep -v "grep" | awk '{print $2}')"
 }
 
 #
@@ -40,11 +40,48 @@ do_start()
 	if [ -z "$mypid" ]
 	then
 		$DAEMON
-		getpid
   		return 0
 	else
         return 1
 	fi
+
+}
+
+#
+# Function that checks the status the daemon/service
+#
+do_status()
+{
+    # Return
+    #   0 if daemon is running
+    #   1 if daemon is not running
+
+    getpid
+    if [ -z "$mypid" ]
+    then
+        return 1
+    else
+        return 0
+    fi
+
+}
+
+#
+# Function that checks the status the daemon/service
+#
+do_console()
+{
+    # Return
+    #   0 if daemon is running
+    #   1 if daemon is not running
+
+    getpid
+    if [ -z "$mypid" ]
+    then
+        return 1
+    else
+        screen -r minecraft-server
+    fi
 
 }
 
@@ -66,8 +103,8 @@ do_stop()
            
         until [ -z "$mypid" ]
         do
-            screen -S minecraft-server -X stuff 'stop
-            '
+            `screen -S minecraft-server -X stuff 'stop
+'`
             sleep 1
             getpid
         done
@@ -98,12 +135,28 @@ case "$1" in
     case "$RET_STATUS" in
         0)
             
+            ;;
+
+        1)
+            echo "Server was already running"
+            
+            ;;
+        2)
+            exit 1
+            ;;
+    esac
+    ;;
+  console)
+    echo "Accessing $DESC" "$NAME"
+    do_console
+    RET_STATUS=$?
+    case "$RET_STATUS" in
+        0)
             
             ;;
 
         1)
-            
-            echo "Server was already running"
+            echo "Server was not running"
             
             ;;
         2)
@@ -131,9 +184,20 @@ case "$1" in
     esac
 
     ;;
-  status)
-    echo "$DESC $NAME is running at $(getpid)"
-    exit $?
+    status)
+        do_status
+        RET_STATUS=$?
+        case "$RET_STATUS" in
+            0)
+                echo "$DESC $NAME is running at $mypid"
+                ;;
+
+            1)
+                echo "Server was not running"
+                ;;
+
+        esac
+        exit "$RET_STATUS"
     ;;
 
   restart)
@@ -142,7 +206,7 @@ case "$1" in
     ;;
 
     *)
-    echo "Usage: $SCRIPTNAME {start|stop|status|restart|reload}" >&2
+    echo "Usage: $SCRIPTNAME {start|stop|console|status|restart|reload}" >&2
     exit 3
     ;;
 esac
