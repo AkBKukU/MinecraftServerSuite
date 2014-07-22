@@ -278,7 +278,7 @@ function updatemcManager ()
 	fi
 
 	# Put files in place
-	cp start-minecraft /var/minecraft/
+	cp start-minecraft /var/minecraft/minecraft
 	cp mcManager /var/minecraft/mcManager
 	ln -s /var/minecraft/mcManager /usr/sbin/mcManager
 	ln -s /var/minecraft/minecraft /usr/sbin/minecraft
