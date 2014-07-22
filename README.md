@@ -26,4 +26,4 @@ The service will accept the following commands: start, stop, status, restart, co
  - restart:
 	 - Stops the server if it's running, then starts it.
  - console:
-	 - Brings you to the server console using screen. Exit the console by pressing `ctrl+alt+d`
+	 - Brings you to the server console using screen. Exit the console by pressing `ctrl+a+d`
