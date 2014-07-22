@@ -83,6 +83,28 @@ function installMinecraft ()
 	cp start-minecraft /var/minecraft/minecraft
 	ln -s /var/minecraft/minecraft /usr/sbin/minecraft
 	cp service-minecraft /etc/init.d/minecraft
+
+	# Accept EULA
+	service minecraft start
+    sleep 5
+	sed -i 's/^eula=false$/eula=true/' /var/minecraft/eula.txt
+
+	# Generate Files
+	service minecraft start
+    sleep 5
+	service minecraft stop
+
+	# Link server.properties to /etc
+	unlink /etc/minecraft.conf
+	ln -s /var/minecraft/server.properties /etc/minecraft.conf
+
+	# Allow Query
+	sed -i 's/^enable-query=false$/enable-query=true/' /var/minecraft/server.properties
+
+	# Add ops
+	echo -n "Users to op(Seperate with spaces): "
+	read ops
+	echo "$ops" | sed 's/ /\n/' >> /var/minecraft/ops.txt
 	
 }
 

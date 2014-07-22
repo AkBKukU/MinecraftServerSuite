@@ -206,7 +206,7 @@ case "$1" in
     ;;
 
     *)
-    echo "Usage: $SCRIPTNAME {start|stop|console|status|restart|reload}" >&2
+    echo "Usage: $SCRIPTNAME {start|stop|console|status|restart}" >&2
     exit 3
     ;;
 esac
