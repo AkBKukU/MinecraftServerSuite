@@ -9,19 +9,30 @@ mcmWebLoc="localhost/mcManager.php"
 # cb-dev
 serverType="vanilla"
 
+# getYesNo
+# 
+# Asks a given question and only accepts a yes or no answer
 function getYesNo ()
 {	
-
-
+	# Set default return
 	output=2
+
+	# Get question to ask
 	message=$1
+
+	# Get a valid response from user
 	valid=false
 	until [ $valid == true ]
 	do
 	
-	echo -n "$message (y/n): "
-	read choice
-	choice=$(echo "${choice^^}" )
+		# Ask Question and get response
+		echo -n "$message (y/n): "
+		read choice
+
+		# Uppercase response
+		choice=$(echo "${choice^^}" )
+
+		# Test if valid
 		case $choice in
 			"Y"|"YES")
 				output=1
@@ -35,48 +46,81 @@ function getYesNo ()
 		esac
 	done
 
+	# Return answer
 	return $output
 }
 
+
+# getNewVanillaLink
+# 
+# Parses the Minecraft download page for the link for the newest version of Minecraft
 function getNewVanillaLink ()
 {	
+	# Link to Minecraft download page
 	PAGE="https://minecraft.net/download"
 
+	# Get page HTML as raw text
 	RAW_PAGE=$(wget "$PAGE" -q -O -)
-	after='.jar" class="download-link" data-dist="server"'
-	before="https"
 
-	end=$(awk -v a="$RAW_PAGE" -v b="$after" 'BEGIN{print index(a,b)}')
+	# Set text that comes before and after the link
+	before="https"
+	after='.jar" class="download-link" data-dist="server"'
+
+	# Find the points in the page HTML where the server download link is
 	start=`expr $(awk -v a="${RAW_PAGE:$(expr $end - 120):120}" -v b="$before" 'BEGIN{print index(a,b)}') + $end - 121`
+	end=$(awk -v a="$RAW_PAGE" -v b="$after" 'BEGIN{print index(a,b)}')
+
+	# Return the download link as a string
 	echo "${RAW_PAGE:$start:$(expr $end - $start)}jar"
 }
 
+
+# getNewVanillaVersion
+# 
+# Parses the Minecraft wiki page to find the newest version number of Minecraft
 function getNewVanillaVersion ()
 {
 
+	# Link to Minecraft wiki page
 	PAGE="http://minecraft.gamepedia.com/Minecraft"
 
+	# Get page HTML as raw text
+
 	RAW_PAGE=$(wget "$PAGE" -q -O -)
+
+	# Set text that comes before, after, and is near the info
 	close="<dt>Computer</dt>"
 	after='</a>'
 	before="\">"
+
+	# Half the page because it is huge and the version number is located in the second half
 	HALF_PAGE=${RAW_PAGE:0:$(expr ${#RAW_PAGE} / 2 ) }
 
+	# Get the area of the part that is close starts because there are few unique ids on the page
 	astart=$(awk -v a="$HALF_PAGE" -v b="$close" "BEGIN{print index(a,b)}")
 	area=${HALF_PAGE:$astart}
 
+	# Find the points in the page HTML where the info is
 	start=`expr $(awk -v a="$area" -v b="$before" 'BEGIN{print index(a,b)}') + $astart + 1`
-
 	end=$(awk -v a="${HALF_PAGE:$start}" -v b="$after" "BEGIN{print index(a,b)}")
+
+	# Return the version number as a string
 	echo "${HALF_PAGE:$start:$(expr $end - 1)}"
 
 }
 
+# getCurrentVersion
+# 
+# Access a PHP script to make a UDP query to the running server to get it's version
 function getCurrentVersion ()
 {
 	echo $(wget "$mcmWebLoc?getCurrentVersion" -q -O -)
 }
 
+
+# checkForVanillaUpdate
+# 
+# Takes the newest version number and compares it to the currently running one to see if they match.
 function checkForVanillaUpdate ()
 {
 	if [ $(getCurrentVersion) != $(getNewVanillaVersion) ]
@@ -87,6 +131,10 @@ function checkForVanillaUpdate ()
 	fi
 }
 
+
+# installMinecraft
+# 
+# Installs the Minecraft server and sets it up as a system service
 function installMinecraft ()
 {
 
@@ -110,11 +158,7 @@ function installMinecraft ()
 	esac
 
 	# Put files in place
-	cp start-minecraft /var/minecraft/
-	cp mcManager /var/minecraft/mcManager
-	ln -s /var/minecraft/mcManager /usr/sbin/mcManager
-	ln -s /var/minecraft/minecraft /usr/sbin/minecraft
-	cp service-minecraft /etc/init.d/minecraft
+	updatemcManager
 
 	# Accept EULA
 	getYesNo "Do you accept the Minecraft server eula (https://account.mojang.com/documents/minecraft_eula)?"
@@ -149,11 +193,13 @@ function installMinecraft ()
 	read ops
 	echo "$ops" | sed 's/ /\n/' >> /var/minecraft/ops.txt
 
-	# Set to run on startup
-	update-rc.d minecraft defaults
 	
 }
 
+
+# updatemcManager
+# 
+# Installs all the mcManager files
 function updatemcManager ()
 {
 
@@ -166,10 +212,14 @@ function updatemcManager ()
 	fi
 
 	# Put files in place
-	cp start-minecraft /var/minecraft/minecraft
+	cp start-minecraft /var/minecraft/
 	cp mcManager /var/minecraft/mcManager
+	ln -s /var/minecraft/mcManager /usr/sbin/mcManager
+	ln -s /var/minecraft/minecraft /usr/sbin/minecraft
 	cp service-minecraft /etc/init.d/minecraft
 	
+	# Set to run on startup
+	update-rc.d minecraft defaults
 }
 
 case $1 in
