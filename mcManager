@@ -110,7 +110,9 @@ function installMinecraft ()
 	esac
 
 	# Put files in place
-	cp start-minecraft /var/minecraft/minecraft
+	cp start-minecraft /var/minecraft/
+	cp mcManager /var/minecraft/mcManager
+	ln -s /var/minecraft/mcManager /usr/sbin/mcManager
 	ln -s /var/minecraft/minecraft /usr/sbin/minecraft
 	cp service-minecraft /etc/init.d/minecraft
 
@@ -146,6 +148,9 @@ function installMinecraft ()
 	echo -n "Users to op (Seperate with spaces): "
 	read ops
 	echo "$ops" | sed 's/ /\n/' >> /var/minecraft/ops.txt
+
+	# Set to run on startup
+	update-rc.d minecraft defaults
 	
 }
 
@@ -162,7 +167,7 @@ function updatemcManager ()
 
 	# Put files in place
 	cp start-minecraft /var/minecraft/minecraft
-	cp mcManager.php /var/www 
+	cp mcManager /var/minecraft/mcManager
 	cp service-minecraft /etc/init.d/minecraft
 	
 }
