@@ -21,6 +21,7 @@ function getNewVanillaLink ()
 	start=`expr $(awk -v a="${RAW_PAGE:$(expr $end - 120):120}" -v b="$before" 'BEGIN{print index(a,b)}') + $end - 121`
 	echo "${RAW_PAGE:$start:$(expr $end - $start)}jar"
 }
+
 function getNewVanillaVersion ()
 {
 
@@ -85,13 +86,18 @@ function installMinecraft ()
 	cp service-minecraft /etc/init.d/minecraft
 
 	# Accept EULA
-	service minecraft start
-    sleep 5
-	sed -i 's/^eula=false$/eula=true/' /var/minecraft/eula.txt
+	answer=getYesNo "Do you accept the eula (https://account.mojang.com/documents/minecraft_eula)?"
+	if [ "$answer" == "1" ]
+		then
+		service minecraft start
+		sleep 5
+		sed -i 's/^eula=false$/eula=true/' /var/minecraft/eula.txt
+
+	fi
 
 	# Generate Files
 	service minecraft start
-    sleep 5
+	sleep 5
 	service minecraft stop
 
 	# Link server.properties to /etc
@@ -159,3 +165,33 @@ case $1 in
 	    exit 3
 		;;
 esac
+
+
+function getYesNo ()
+{	
+
+
+	output=2
+	message=$1
+	valid=false
+	until [ $valid == true ]
+	do
+	
+	echo -n "$message (y/n): "
+	read choice
+	choice=$(echo "${choice^^}" )
+		case $choice in
+			"Y"|"YES")
+				output=1
+				valid=true
+				;;
+
+			"N"|"NO")
+				output=0
+				valid=true
+				;;
+		esac
+	done
+
+	return $output
+}
