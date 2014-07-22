@@ -67,8 +67,8 @@ function getNewVanillaLink ()
 	after='.jar" class="download-link" data-dist="server"'
 
 	# Find the points in the page HTML where the server download link is
-	start=`expr $(awk -v a="${RAW_PAGE:$(expr $end - 120):120}" -v b="$before" 'BEGIN{print index(a,b)}') + $end - 121`
 	end=$(awk -v a="$RAW_PAGE" -v b="$after" 'BEGIN{print index(a,b)}')
+	start=`expr $(awk -v a="${RAW_PAGE:$(expr $end - 120):120}" -v b="$before" 'BEGIN{print index(a,b)}') + $end - 121`
 
 	# Return the download link as a string
 	echo "${RAW_PAGE:$start:$(expr $end - $start)}jar"
@@ -111,23 +111,63 @@ function getNewVanillaVersion ()
 
 # getCurrentVersion
 # 
-# Access a PHP script to make a UDP query to the running server to get it's version
+# Run a copy of the server in the tmp folder to get it's version
 function getCurrentVersion ()
 {
-	echo $(wget "$mcmWebLoc?getCurrentVersion" -q -O -)
+	# Copy to a new temp directory
+	mkdir /tmp/mcManager/
+	sudo cp /var/minecraft/minecraft-server.jar /tmp/mcManager/
+
+	# Start the server to generate a log file. It will stop on the eula agreement
+	cd /tmp/mcManager/
+	java -Xms512M -Xmx1G -jar ./minecraft-server.jar &>> /dev/null
+
+	# Get latest log as raw text
+	RAW_PAGE=$(cat /tmp/mcManager/logs/latest.log)
+
+	# Set text that comes before the version number
+	before="version "
+
+	# Find the point in the log where the version number
+	start=$(awk -v a="$RAW_PAGE" -v b="$before" 'BEGIN{print index(a,b)}')
+
+	# Return the download link as a string after cutting off the end
+	echo "$(echo ${RAW_PAGE:$(expr $start + ${#before} - 1 )} | sed 's/\s.*$//' | tail -1 )"
+
+	rm -r /tmp/mcManager/
+
 }
 
 
 # checkForVanillaUpdate
 # 
 # Takes the newest version number and compares it to the currently running one to see if they match.
-function checkForVanillaUpdate ()
+function checkForUpdate ()
 {
-	if [ $(getCurrentVersion) != $(getNewVanillaVersion) ]
+	case $serverType in 
+
+		'vanilla')
+				if [ "$(getCurrentVersion)" != "$(getNewVanillaVersion)" ]
+				then
+					echo "Not Up to Date!"
+				else
+					echo "Up to date"
+				fi
+			;;
+	esac
+}
+
+
+# autoUpdate
+# 
+# Checks for any updates and automaticaly applies them
+function autoUpdate ()
+{
+	if [ "$(checkForUpdate)" == "Not Up to Date!" ]
 	then
-		echo "Not Up to Date!"
+		updateMinecraft
 	else
-		echo "Up to date"
+		echo "No update needed"
 	fi
 }
 
@@ -197,6 +237,32 @@ function installMinecraft ()
 }
 
 
+# updateMinecraft
+# 
+# Updates Minecraft
+function updateMinecraft ()
+{	
+	# root test
+	if [[ $EUID -ne 0 ]] 
+	then
+   		echo "You need to run this as root to be able to make system changes"
+		echo -e "Run \"sudo $0 $1\" next time"
+		exit 1
+	fi
+
+	service minecraft stop
+
+	# Download program
+	case $serverType in 
+
+		'vanilla')
+				wget $(getNewVanillaLink) -O /var/minecraft/minecraft-server.jar
+			;;
+	esac
+
+	service minecraft start
+}
+
 # updatemcManager
 # 
 # Installs all the mcManager files
@@ -237,8 +303,16 @@ case $1 in
 		getCurrentVersion
 		;;
 
-	'checkForVanillaUpdate')
-		checkForVanillaUpdate
+	'checkForUpdate')
+		checkForUpdate
+		;;
+
+	'autoUpdate')
+		autoUpdate
+		;;
+
+	'updateMinecraft')
+		updateMinecraft
 		;;
 
 	'installMinecraft')
