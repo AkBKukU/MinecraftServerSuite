@@ -9,6 +9,35 @@ mcmWebLoc="localhost/mcManager.php"
 # cb-dev
 serverType="vanilla"
 
+function getYesNo ()
+{	
+
+
+	output=2
+	message=$1
+	valid=false
+	until [ $valid == true ]
+	do
+	
+	echo -n "$message (y/n): "
+	read choice
+	choice=$(echo "${choice^^}" )
+		case $choice in
+			"Y"|"YES")
+				output=1
+				valid=true
+				;;
+
+			"N"|"NO")
+				output=0
+				valid=true
+				;;
+		esac
+	done
+
+	return $output
+}
+
 function getNewVanillaLink ()
 {	
 	PAGE="https://minecraft.net/download"
@@ -86,8 +115,8 @@ function installMinecraft ()
 	cp service-minecraft /etc/init.d/minecraft
 
 	# Accept EULA
-	answer=getYesNo "Do you accept the eula (https://account.mojang.com/documents/minecraft_eula)?"
-	if [ "$answer" == "1" ]
+	getYesNo "Do you accept the Minecraft server eula (https://account.mojang.com/documents/minecraft_eula)?"
+	if [ "$?" == "1" ]
 		then
 		service minecraft start
 		sleep 5
@@ -108,7 +137,7 @@ function installMinecraft ()
 	sed -i 's/^enable-query=false$/enable-query=true/' /var/minecraft/server.properties
 
 	# Add ops
-	echo -n "Users to op(Seperate with spaces): "
+	echo -n "Users to op (Seperate with spaces): "
 	read ops
 	echo "$ops" | sed 's/ /\n/' >> /var/minecraft/ops.txt
 	
@@ -166,32 +195,3 @@ case $1 in
 		;;
 esac
 
-
-function getYesNo ()
-{	
-
-
-	output=2
-	message=$1
-	valid=false
-	until [ $valid == true ]
-	do
-	
-	echo -n "$message (y/n): "
-	read choice
-	choice=$(echo "${choice^^}" )
-		case $choice in
-			"Y"|"YES")
-				output=1
-				valid=true
-				;;
-
-			"N"|"NO")
-				output=0
-				valid=true
-				;;
-		esac
-	done
-
-	return $output
-}
