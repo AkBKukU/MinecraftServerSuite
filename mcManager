@@ -119,14 +119,20 @@ function installMinecraft ()
 	if [ "$?" == "1" ]
 		then
 		service minecraft start
-		sleep 5
+        until [ -f /var/minecraft/eula.txt ]
+        do
+            sleep 1
+        done
 		sed -i 's/^eula=false$/eula=true/' /var/minecraft/eula.txt
 
 	fi
 
 	# Generate Files
 	service minecraft start
-	sleep 5
+    until [ -f /var/minecraft/server.properties ]
+    do
+        sleep 1
+    done
 	service minecraft stop
 
 	# Link server.properties to /etc
