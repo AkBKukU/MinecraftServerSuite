@@ -1,6 +1,10 @@
 #!/bin/bash
 
-mcmWebLoc="localhost/mcManager.php"
+sysdate=$(date +"20%y-%m-%d")
+
+mcDir="/var/minecraft"
+backupDir="/var/minecraft/backups"
+backupsToKeep=5
 
 # Prefered server version/type
 # vanilla
@@ -8,6 +12,267 @@ mcmWebLoc="localhost/mcManager.php"
 # cb-beta
 # cb-dev
 serverType="vanilla"
+
+
+# getNewLink
+# 
+# Parses the Minecraft download page for the link for the newest version of Minecraft
+function getNewLink ()
+{	
+
+	case $serverType in 
+
+		'vanilla')
+			# Link to Minecraft download page
+			PAGE="https://minecraft.net/download"
+
+			# Get page HTML as raw text
+			RAW_PAGE=$(wget "$PAGE" -q -O -)
+
+			# Set text that comes before and after the link
+			before="https"
+			after='.jar" class="download-link" data-dist="server"'
+
+			# Find the points in the page HTML where the server download link is
+			end=$(awk -v a="$RAW_PAGE" -v b="$after" 'BEGIN{print index(a,b)}')
+			start=`expr $(awk -v a="${RAW_PAGE:$(expr $end - 120):120}" -v b="$before" 'BEGIN{print index(a,b)}') + $end - 121`
+
+			# Return the download link as a string
+			echo "${RAW_PAGE:$start:$(expr $end - $start)}jar"
+			;;
+	esac
+}
+
+
+# getNewestVersion
+# 
+# Parses the Minecraft wiki page to find the newest version number of Minecraft
+function getNewestVersion ()
+{
+
+	case $serverType in 
+
+		'vanilla')
+			# Link to Minecraft wiki page
+			PAGE="http://minecraft.gamepedia.com/Minecraft"
+
+			# Get page HTML as raw text
+
+			RAW_PAGE=$(wget "$PAGE" -q -O -)
+
+			# Set text that comes before, after, and is near the info
+			close="<dt>Computer</dt>"
+			after='</a>'
+			before="\">"
+
+			# Half the page because it is huge and the version number is located in the second half
+			HALF_PAGE=${RAW_PAGE:0:$(expr ${#RAW_PAGE} / 2 ) }
+
+			# Get the area of the part that is close starts because there are few unique ids on the page
+			astart=$(awk -v a="$HALF_PAGE" -v b="$close" "BEGIN{print index(a,b)}")
+			area=${HALF_PAGE:$astart}
+
+			# Find the points in the page HTML where the info is
+			start=`expr $(awk -v a="$area" -v b="$before" 'BEGIN{print index(a,b)}') + $astart + 1`
+			end=$(awk -v a="${HALF_PAGE:$start}" -v b="$after" "BEGIN{print index(a,b)}")
+
+			# Return the version number as a string
+			echo "${HALF_PAGE:$start:$(expr $end - 1)}"
+			;;
+	esac
+
+}
+
+# getCurrentVersion
+# 
+# Run a copy of the server in the tmp folder to get it's version
+function getCurrentVersion ()
+{
+	# Copy to a new temp directory
+	mkdir /tmp/mcManager/
+	sudo cp "$mcDir/minecraft-server.jar" /tmp/mcManager/
+
+	# Start the server to generate a log file. It will stop on the eula agreement
+	cd /tmp/mcManager/
+	java -Xms512M -Xmx1G -jar ./minecraft-server.jar &>> /dev/null
+
+	# Get latest log as raw text
+	RAW_PAGE=$(cat /tmp/mcManager/logs/latest.log)
+
+	# Set text that comes before the version number
+	before="version "
+
+	# Find the point in the log where the version number
+	start=$(awk -v a="$RAW_PAGE" -v b="$before" 'BEGIN{print index(a,b)}')
+
+	# Return the download link as a string after cutting off the end
+	echo "$(echo ${RAW_PAGE:$(expr $start + ${#before} - 1 )} | sed 's/\s.*$//' | tail -1 )"
+
+	rm -r /tmp/mcManager/
+
+}
+
+
+# checkForVanillaUpdate
+# 
+# Takes the newest version number and compares it to the currently running one to see if they match.
+function checkForUpdate ()
+{
+	case $serverType in 
+
+		'vanilla')
+				if [ "$(getCurrentVersion)" != "$(getNewestVersion)" ]
+				then
+					echo "Not Up to Date!"
+				else
+					echo "Up to date"
+				fi
+			;;
+	esac
+}
+
+
+# autoUpdate
+# 
+# Checks for any updates and automaticaly applies them
+function autoUpdate ()
+{
+	if [ "$(checkForUpdate)" == "Not Up to Date!" ]
+	then
+		updateMinecraft
+	else
+		echo "No update needed"
+	fi
+}
+
+
+# installMinecraft
+# 
+# Installs the Minecraft server and sets it up as a system service
+function installMinecraft ()
+{
+
+	rootTest
+
+	# Setup /var/minecraft
+	mkdir "$mcDir"
+
+	# Download program
+	updateMinecraft
+
+	# Put files in place
+	updatemcManager
+
+	# Accept EULA
+	getYesNo "Do you accept the Minecraft server eula (https://account.mojang.com/documents/minecraft_eula)?"
+	if [ "$?" == "1" ]
+		then
+		service minecraft start
+        until [ -f "$mcDir/eula.txt" ]
+        do
+            sleep 1
+        done
+		sed -i 's/^eula=false$/eula=true/' "$mcDir/eula.txt"
+
+	fi
+
+	# Generate Files
+	service minecraft start
+    until [ -f "$mcDir/server.properties" ]
+    do
+        sleep 1
+    done
+	service minecraft stop
+
+	# Link server.properties to /etc
+	unlink /etc/minecraft.conf
+	ln -s "$mcDir/server.properties" /etc/minecraft.conf
+
+	# Add ops
+	echo -n "Users to op (Seperate with spaces): "
+	read ops
+	echo "$ops" | sed 's/ /\n/' >> "$mcDir/ops.txt"
+
+	
+}
+
+
+# updateMinecraft
+# 
+# Updates Minecraft
+function updateMinecraft ()
+{	
+	rootTest
+
+	service minecraft stop
+
+	# Download program
+	case $serverType in 
+
+		'vanilla')
+				wget $(getNewLink) -O "$mcDir/minecraft-server.jar"
+			;;
+	esac
+
+	service minecraft start
+}
+
+# backupMinecraft
+# 
+# Backs up the entire Minecraft setup and worlds
+function backupMinecraft ()
+{
+
+	rootTest
+
+	mkdir $backupDir
+
+	backupName="$sysdate-$(getCurrentVersion)-Backup"
+	tar -czf $backupDir/$backupName.tar.gz $mcDir
+}
+
+# autoBackupMinecraft
+# 
+# Backs up Minecraft and checks if there are more backups than wanted
+function autoBackupMinecraft ()
+{
+
+	rootTest
+
+	backupMinecraft
+
+	cd $backupDir
+
+	files=(*)
+	numfiles=${#files[@]}
+	echo "$backupsToKeep < $numfiles"
+
+	if [ "$backupsToKeep" -lt "$numfiles" ]
+		then
+			rm "${files[0]}"
+	fi
+
+}
+
+
+# updatemcManager
+# 
+# Installs all the mcManager files
+function updatemcManager ()
+{
+
+	rootTest
+
+	# Put files in place
+	cp start-minecraft "$mcDir/minecraft"
+	ln -s "$mcDir/minecraft" /usr/sbin/minecraft
+	cp mcManager "$mcDir/mcManager"
+	ln -s "$mcDir/mcManager"/usr/sbin/mcManager
+	cp service-minecraft /etc/init.d/minecraft
+	
+	# Set to run on startup
+	update-rc.d minecraft defaults
+}
 
 # getYesNo
 # 
@@ -50,253 +315,30 @@ function getYesNo ()
 	return $output
 }
 
-
-# getNewVanillaLink
-# 
-# Parses the Minecraft download page for the link for the newest version of Minecraft
-function getNewVanillaLink ()
-{	
-	# Link to Minecraft download page
-	PAGE="https://minecraft.net/download"
-
-	# Get page HTML as raw text
-	RAW_PAGE=$(wget "$PAGE" -q -O -)
-
-	# Set text that comes before and after the link
-	before="https"
-	after='.jar" class="download-link" data-dist="server"'
-
-	# Find the points in the page HTML where the server download link is
-	end=$(awk -v a="$RAW_PAGE" -v b="$after" 'BEGIN{print index(a,b)}')
-	start=`expr $(awk -v a="${RAW_PAGE:$(expr $end - 120):120}" -v b="$before" 'BEGIN{print index(a,b)}') + $end - 121`
-
-	# Return the download link as a string
-	echo "${RAW_PAGE:$start:$(expr $end - $start)}jar"
-}
-
-
-# getNewVanillaVersion
-# 
-# Parses the Minecraft wiki page to find the newest version number of Minecraft
-function getNewVanillaVersion ()
+# rootTest
+# Tests if the script was run qith root permissions and tells the user they need to if they didn't.
+function rootTest ()
 {
-
-	# Link to Minecraft wiki page
-	PAGE="http://minecraft.gamepedia.com/Minecraft"
-
-	# Get page HTML as raw text
-
-	RAW_PAGE=$(wget "$PAGE" -q -O -)
-
-	# Set text that comes before, after, and is near the info
-	close="<dt>Computer</dt>"
-	after='</a>'
-	before="\">"
-
-	# Half the page because it is huge and the version number is located in the second half
-	HALF_PAGE=${RAW_PAGE:0:$(expr ${#RAW_PAGE} / 2 ) }
-
-	# Get the area of the part that is close starts because there are few unique ids on the page
-	astart=$(awk -v a="$HALF_PAGE" -v b="$close" "BEGIN{print index(a,b)}")
-	area=${HALF_PAGE:$astart}
-
-	# Find the points in the page HTML where the info is
-	start=`expr $(awk -v a="$area" -v b="$before" 'BEGIN{print index(a,b)}') + $astart + 1`
-	end=$(awk -v a="${HALF_PAGE:$start}" -v b="$after" "BEGIN{print index(a,b)}")
-
-	# Return the version number as a string
-	echo "${HALF_PAGE:$start:$(expr $end - 1)}"
-
-}
-
-# getCurrentVersion
-# 
-# Run a copy of the server in the tmp folder to get it's version
-function getCurrentVersion ()
-{
-	# Copy to a new temp directory
-	mkdir /tmp/mcManager/
-	sudo cp /var/minecraft/minecraft-server.jar /tmp/mcManager/
-
-	# Start the server to generate a log file. It will stop on the eula agreement
-	cd /tmp/mcManager/
-	java -Xms512M -Xmx1G -jar ./minecraft-server.jar &>> /dev/null
-
-	# Get latest log as raw text
-	RAW_PAGE=$(cat /tmp/mcManager/logs/latest.log)
-
-	# Set text that comes before the version number
-	before="version "
-
-	# Find the point in the log where the version number
-	start=$(awk -v a="$RAW_PAGE" -v b="$before" 'BEGIN{print index(a,b)}')
-
-	# Return the download link as a string after cutting off the end
-	echo "$(echo ${RAW_PAGE:$(expr $start + ${#before} - 1 )} | sed 's/\s.*$//' | tail -1 )"
-
-	rm -r /tmp/mcManager/
-
-}
-
-
-# checkForVanillaUpdate
-# 
-# Takes the newest version number and compares it to the currently running one to see if they match.
-function checkForUpdate ()
-{
-	case $serverType in 
-
-		'vanilla')
-				if [ "$(getCurrentVersion)" != "$(getNewVanillaVersion)" ]
-				then
-					echo "Not Up to Date!"
-				else
-					echo "Up to date"
-				fi
-			;;
-	esac
-}
-
-
-# autoUpdate
-# 
-# Checks for any updates and automaticaly applies them
-function autoUpdate ()
-{
-	if [ "$(checkForUpdate)" == "Not Up to Date!" ]
-	then
-		updateMinecraft
-	else
-		echo "No update needed"
-	fi
-}
-
-
-# installMinecraft
-# 
-# Installs the Minecraft server and sets it up as a system service
-function installMinecraft ()
-{
-
-	# root test
 	if [[ $EUID -ne 0 ]] 
 	then
    		echo "You need to run this as root to be able to make system changes"
-		echo -e "Run \"sudo $0 $1\" next time"
+		echo -e "Run \"sudo $0\" next time"
 		exit 1
 	fi
-
-	# Setup /var/minecraft
-	mkdir /var/minecraft
-
-	# Download program
-	case $serverType in 
-
-		'vanilla')
-				wget $(getNewVanillaLink) -O /var/minecraft/minecraft-server.jar
-			;;
-	esac
-
-	# Put files in place
-	updatemcManager
-
-	# Accept EULA
-	getYesNo "Do you accept the Minecraft server eula (https://account.mojang.com/documents/minecraft_eula)?"
-	if [ "$?" == "1" ]
-		then
-		service minecraft start
-        until [ -f /var/minecraft/eula.txt ]
-        do
-            sleep 1
-        done
-		sed -i 's/^eula=false$/eula=true/' /var/minecraft/eula.txt
-
-	fi
-
-	# Generate Files
-	service minecraft start
-    until [ -f /var/minecraft/server.properties ]
-    do
-        sleep 1
-    done
-	service minecraft stop
-
-	# Link server.properties to /etc
-	unlink /etc/minecraft.conf
-	ln -s /var/minecraft/server.properties /etc/minecraft.conf
-
-	# Allow Query
-	sed -i 's/^enable-query=false$/enable-query=true/' /var/minecraft/server.properties
-
-	# Add ops
-	echo -n "Users to op (Seperate with spaces): "
-	read ops
-	echo "$ops" | sed 's/ /\n/' >> /var/minecraft/ops.txt
-
-	
 }
 
 
-# updateMinecraft
-# 
-# Updates Minecraft
-function updateMinecraft ()
-{	
-	# root test
-	if [[ $EUID -ne 0 ]] 
-	then
-   		echo "You need to run this as root to be able to make system changes"
-		echo -e "Run \"sudo $0 $1\" next time"
-		exit 1
-	fi
 
-	service minecraft stop
-
-	# Download program
-	case $serverType in 
-
-		'vanilla')
-				wget $(getNewVanillaLink) -O /var/minecraft/minecraft-server.jar
-			;;
-	esac
-
-	service minecraft start
-}
-
-# updatemcManager
-# 
-# Installs all the mcManager files
-function updatemcManager ()
-{
-
-	# root test
-	if [[ $EUID -ne 0 ]] 
-	then
-   		echo "You need to run this as root to be able to make system changes"
-		echo -e "Run \"sudo $0 $1\" next time"
-		exit 1
-	fi
-
-	# Put files in place
-	cp start-minecraft /var/minecraft/minecraft
-	cp mcManager /var/minecraft/mcManager
-	ln -s /var/minecraft/mcManager /usr/sbin/mcManager
-	ln -s /var/minecraft/minecraft /usr/sbin/minecraft
-	cp service-minecraft /etc/init.d/minecraft
-	
-	# Set to run on startup
-	update-rc.d minecraft defaults
-}
-
+# Logic
 case $1 in
 
 
-	'getNewVanillaLink')
-		getNewVanillaLink
+	'getNewLink')
+		getNewLink
 		;;
 
-	'getNewVanillaVersion')
-		getNewVanillaVersion
+	'getNewestVersion')
+		getNewestVersion
 		;;
 
 	'getCurrentVersion')
@@ -319,10 +361,17 @@ case $1 in
 		installMinecraft
 		;;
 
+	'backupMinecraft')
+		backupMinecraft
+		;;
+
+	'autoBackupMinecraft')
+		autoBackupMinecraft
+		;;
+
 	'updatemcManager')
 		updatemcManager
 		;;
-
 
 	*)
 	    echo "Usage: $0 {getNewVanillaLink|getNewVanillaVersion|getCurrentVersion|checkForVanillaUpdate|installMinecraft|updatemcManager}" >&2

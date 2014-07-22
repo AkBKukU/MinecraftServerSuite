@@ -15,7 +15,7 @@ this requires that you have `screen`. If you do not install it with `sudo apt-ge
 That's all there is to the basic setup. 
 
 ##Commands##
-The service will accept the following commands: start, stop, status, restart, console. Run the like this `sudo service minecraft start`
+The service will accept the following commands: start, stop, status, restart, console. Run them like this `sudo service minecraft start`
 
  - start:
 	 - Runs the server if it's not running.
@@ -27,3 +27,19 @@ The service will accept the following commands: start, stop, status, restart, co
 	 - Stops the server if it's running, then starts it.
  - console:
 	 - Brings you to the server console using screen. Exit the console by pressing `ctrl+a+d`
+
+
+The mcManger has several useful commands including: installMinecraft, checkForUpdate, autoUpdate, updateMinecraft, backupMinecraft, autoBackupMinecraft. Run them like this `sudo mcManager checkForUpdate`
+
+ - installMinecraft:
+	 - Installs the Minecraft server like described in install instructions.
+ - checkForUpdate:
+	 - Checks if there is an update available for the server.
+ - autoUpdate:
+	 - Runs checkForUpdate and if there is an update it installs it.
+ - updateMinecraft:
+	 - Installs the newest version of the Minecraft server. Does not delete the worlds.
+ - backupMinecraft:
+	 - Backs up the whole Minecraft server to the backup directory.
+ - autoBackupMinecraft:
+	 - Runs backupMinecraft and checks if there are more backups than allowed and cleans up old one if there is.
