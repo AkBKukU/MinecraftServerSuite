@@ -12,7 +12,7 @@
 
 DESC="Game server"
 NAME="Minecraft"
-DAEMON=/usr/sbin/minecraft
+DAEMON=/usr/sbin/minecraftd
 
 SCRIPTNAME="${0##*/}"
 SCRIPTNAME="${SCRIPTNAME##[KS][0-9][0-9]}"
@@ -94,7 +94,8 @@ do_stop()
     #   2 if daemon could not be stopped
     #   other if a failure occurred
     getpid
-
+    limit=30
+    tries=0
     if [ ! -z "$mypid" ]
     then
            
@@ -104,6 +105,11 @@ do_stop()
 '`
             sleep 1
             getpid
+            tries=`expr $tries + 1`
+            if [ $tries > $limit ]
+                then
+                kill 9 $mypid
+            fi
         done
     
         return 0

@@ -2,16 +2,16 @@
 
 sysdate=$(date +"20%y-%m-%d")
 
-mcDir="/var/minecraft"
-backupDir="/var/minecraft/backups"
+mcDir="/var/minecraftd"
+backupDir="/var/minecraftd/backups"
 backupsToKeep=5
 
 # Prefered server version/type
 # vanilla
-# cb-rec
+# cb-rb
 # cb-beta
 # cb-dev
-serverType="vanilla"
+serverType="cb-dev"
 
 
 # getNewLink
@@ -39,6 +39,81 @@ function getNewLink ()
 
 			# Return the download link as a string
 			echo "${RAW_PAGE:$start:$(expr $end - $start)}jar"
+			;;
+
+		'cb-rb')
+			# Link to Craftbukkit download page
+			PAGE="https://dl.bukkit.org/downloads/craftbukkit/"
+
+			# Get page HTML as raw text
+
+			RAW_PAGE=$(wget "$PAGE" -q -O -)
+
+			# Set text that comes before, after, and is near the info
+			close="chan-rb"
+			after='.jar"'
+			before='href="'
+
+			# Get the area of the part that is close starts because there are few unique ids on the page
+			astart=$(awk -v a="$RAW_PAGE" -v b="$close" "BEGIN{print index(a,b)}" 2>/dev/null ) 
+			area=${RAW_PAGE:$astart}
+
+			# Find the points in the page HTML where the info is
+			start=`expr $(awk -v a="$area" -v b="$before" 'BEGIN{print index(a,b)}' 2>/dev/null ) + $astart + ${#before} - 1` 
+			end=$(awk -v a="${RAW_PAGE:$start}" -v b="$after" "BEGIN{print index(a,b)}" 2>/dev/null ) 
+
+			# Return the version number as a string
+			echo "https://dl.bukkit.org${RAW_PAGE:$start:$(expr $end - 1)}.jar"
+			;;
+
+		'cb-beta')
+			# Link to Craftbukkit download page
+			PAGE="https://dl.bukkit.org/downloads/craftbukkit/"
+
+			# Get page HTML as raw text
+
+			RAW_PAGE=$(wget "$PAGE" -q -O -)
+
+			# Set text that comes before, after, and is near the info
+			close="chan-beta"
+			after='.jar"'
+			before='href="'
+
+			# Get the area of the part that is close starts because there are few unique ids on the page
+			astart=$(awk -v a="$RAW_PAGE" -v b="$close" "BEGIN{print index(a,b)}" 2>/dev/null ) 
+			area=${RAW_PAGE:$astart}
+
+			# Find the points in the page HTML where the info is
+			start=`expr $(awk -v a="$area" -v b="$before" 'BEGIN{print index(a,b)}' 2>/dev/null ) + $astart + ${#before} - 1` 
+			end=$(awk -v a="${RAW_PAGE:$start}" -v b="$after" "BEGIN{print index(a,b)}" 2>/dev/null ) 
+
+			# Return the version number as a string
+			echo "https://dl.bukkit.org${RAW_PAGE:$start:$(expr $end - 1)}.jar"
+			;;
+
+		'cb-dev')
+			# Link to Craftbukkit download page
+			PAGE="https://dl.bukkit.org/downloads/craftbukkit/"
+
+			# Get page HTML as raw text
+
+			RAW_PAGE=$(wget "$PAGE" -q -O -)
+
+			# Set text that comes before, after, and is near the info
+			close="chan-dev"
+			after='.jar"'
+			before='href="'
+
+			# Get the area of the part that is close starts because there are few unique ids on the page
+			astart=$(awk -v a="$RAW_PAGE" -v b="$close" "BEGIN{print index(a,b)}" 2>/dev/null ) 
+			area=${RAW_PAGE:$astart}
+
+			# Find the points in the page HTML where the info is
+			start=`expr $(awk -v a="$area" -v b="$before" 'BEGIN{print index(a,b)}' 2>/dev/null ) + $astart + ${#before} - 1` 
+			end=$(awk -v a="${RAW_PAGE:$start}" -v b="$after" "BEGIN{print index(a,b)}" 2>/dev/null ) 
+
+			# Return the version number as a string
+			echo "https://dl.bukkit.org${RAW_PAGE:$start:$(expr $end - 1)}.jar"
 			;;
 	esac
 }
@@ -79,6 +154,81 @@ function getNewestVersion ()
 			# Return the version number as a string
 			echo "${HALF_PAGE:$start:$(expr $end - 1)}"
 			;;
+
+		'cb-rb')
+			# Link to Craftbukkit download page
+			PAGE="https://dl.bukkit.org/downloads/craftbukkit/"
+
+			# Get page HTML as raw text
+
+			RAW_PAGE=$(wget "$PAGE" -q -O -)
+
+			# Set text that comes before, after, and is near the info
+			close="chan-rb"
+			after='">'
+			before='version '
+
+			# Get the area of the part that is close starts because there are few unique ids on the page
+			astart=$(awk -v a="$RAW_PAGE" -v b="$close" "BEGIN{print index(a,b)}" 2>/dev/null ) 
+			area=${RAW_PAGE:$astart}
+
+			# Find the points in the page HTML where the info is
+			start=`expr $(awk -v a="$area" -v b="$before" 'BEGIN{print index(a,b)}' 2>/dev/null ) + $astart + ${#before} - 1` 
+			end=$(awk -v a="${RAW_PAGE:$start}" -v b="$after" "BEGIN{print index(a,b)}" 2>/dev/null ) 
+
+			# Return the version number as a string
+			echo "${RAW_PAGE:$start:$(expr $end - 1)}"
+			;;
+
+		'cb-beta')
+			# Link to Craftbukkit download page
+			PAGE="https://dl.bukkit.org/downloads/craftbukkit/"
+
+			# Get page HTML as raw text
+
+			RAW_PAGE=$(wget "$PAGE" -q -O -)
+
+			# Set text that comes before, after, and is near the info
+			close="chan-beta"
+			after='">'
+			before='version '
+
+			# Get the area of the part that is close starts because there are few unique ids on the page
+			astart=$(awk -v a="$RAW_PAGE" -v b="$close" "BEGIN{print index(a,b)}" 2>/dev/null ) 
+			area=${RAW_PAGE:$astart}
+
+			# Find the points in the page HTML where the info is
+			start=`expr $(awk -v a="$area" -v b="$before" 'BEGIN{print index(a,b)}' 2>/dev/null ) + $astart + ${#before} - 1` 
+			end=$(awk -v a="${RAW_PAGE:$start}" -v b="$after" "BEGIN{print index(a,b)}" 2>/dev/null ) 
+
+			# Return the version number as a string
+			echo "${RAW_PAGE:$start:$(expr $end - 1)}"
+			;;
+
+		'cb-dev')
+			# Link to Craftbukkit download page
+			PAGE="https://dl.bukkit.org/downloads/craftbukkit/"
+
+			# Get page HTML as raw text
+
+			RAW_PAGE=$(wget "$PAGE" -q -O -)
+
+			# Set text that comes before, after, and is near the info
+			close="chan-dev"
+			after='">'
+			before='version '
+
+			# Get the area of the part that is close starts because there are few unique ids on the page
+			astart=$(awk -v a="$RAW_PAGE" -v b="$close" "BEGIN{print index(a,b)}" 2>/dev/null ) 
+			area=${RAW_PAGE:$astart}
+
+			# Find the points in the page HTML where the info is
+			start=`expr $(awk -v a="$area" -v b="$before" 'BEGIN{print index(a,b)}' 2>/dev/null ) + $astart + ${#before} - 1` 
+			end=$(awk -v a="${RAW_PAGE:$start}" -v b="$after" "BEGIN{print index(a,b)}" 2>/dev/null ) 
+
+			# Return the version number as a string
+			echo "${RAW_PAGE:$start:$(expr $end - 1)}"
+			;;
 	esac
 
 }
@@ -118,17 +268,12 @@ function getCurrentVersion ()
 # Takes the newest version number and compares it to the currently running one to see if they match.
 function checkForUpdate ()
 {
-	case $serverType in 
-
-		'vanilla')
-				if [ "$(getCurrentVersion)" != "$(getNewestVersion)" ]
-				then
-					echo "Not Up to Date!"
-				else
-					echo "Up to date"
-				fi
-			;;
-	esac
+	if [ "$(getCurrentVersion)" != "$(getNewestVersion)" ]
+	then
+		echo "Not Up to Date!"
+	else
+		echo "Up to date"
+	fi
 }
 
 
@@ -167,7 +312,7 @@ function installMinecraft ()
 	getYesNo "Do you accept the Minecraft server eula (https://account.mojang.com/documents/minecraft_eula)?"
 	if [ "$?" == "1" ]
 		then
-		service minecraft start
+		service minecraftd start
         until [ -f "$mcDir/eula.txt" ]
         do
             sleep 1
@@ -177,16 +322,16 @@ function installMinecraft ()
 	fi
 
 	# Generate Files
-	service minecraft start
+	service minecraftd start
     until [ -f "$mcDir/server.properties" ]
     do
         sleep 1
     done
-	service minecraft stop
+	service minecraftd stop
 
 	# Link server.properties to /etc
-	unlink /etc/minecraft.conf
-	ln -s "$mcDir/server.properties" /etc/minecraft.conf
+	unlink /etc/minecraftd.conf
+	ln -s "$mcDir/server.properties" /etc/minecraftd.conf
 
 	# Add ops
 	echo -n "Users to op (Seperate with spaces): "
@@ -204,17 +349,12 @@ function updateMinecraft ()
 {	
 	rootTest
 
-	service minecraft stop
+	service minecraftd stop
 
 	# Download program
-	case $serverType in 
-
-		'vanilla')
-				wget $(getNewLink) -O "$mcDir/minecraft-server.jar"
-			;;
-	esac
-
-	service minecraft start
+	wget $(getNewLink) -O "$mcDir/minecraft-server.jar"
+	
+	service minecraftd start
 }
 
 # backupMinecraft
@@ -264,14 +404,26 @@ function updatemcManager ()
 	rootTest
 
 	# Put files in place
-	cp start-minecraft "$mcDir/minecraft"
-	ln -s "$mcDir/minecraft" /usr/sbin/minecraft
+	cp start-minecraft "$mcDir/minecraftd"
+	ln -s "$mcDir/minecraftd" /usr/sbin/minecraftd
 	cp mcManager "$mcDir/mcManager"
 	ln -s "$mcDir/mcManager"/usr/sbin/mcManager
-	cp service-minecraft /etc/init.d/minecraft
+	cp service-minecraft /etc/init.d/minecraftd
 	
 	# Set to run on startup
-	update-rc.d minecraft defaults
+	update-rc.d minecraftd defaults
+}
+
+
+# status
+# 
+# Returns current information about the server
+function updatemcManager ()
+{
+
+	rootTest
+
+	echo "Current Version: $(getCurrentVersion) Newest Version: $(getNewestVersion)"
 }
 
 # getYesNo
@@ -370,6 +522,10 @@ case $1 in
 		;;
 
 	'updatemcManager')
+		updatemcManager
+		;;
+
+	'status')
 		updatemcManager
 		;;
 
