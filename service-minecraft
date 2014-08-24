@@ -125,8 +125,8 @@ do_stop()
 # Function that sends a SIGHUP to the daemon/service
 #
 do_reload() {
-    do_start
     do_stop
+    do_start
 }
 
 

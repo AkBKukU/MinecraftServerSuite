@@ -3,6 +3,9 @@
 sysdate=$(date +"20%y-%m-%d")
 
 mcDir="/var/minecraftd"
+
+echo "Using \"$mcDir\" "
+
 backupDir="/var/minecraftd/backups"
 backupsToKeep=5
 
@@ -299,7 +302,7 @@ function installMinecraft ()
 
 	rootTest
 
-	# Setup /var/minecraft
+	# Setup /var/minecraftd
 	mkdir "$mcDir"
 
 	# Download program
@@ -418,7 +421,7 @@ function updatemcManager ()
 # status
 # 
 # Returns current information about the server
-function updatemcManager ()
+function status ()
 {
 
 	rootTest
