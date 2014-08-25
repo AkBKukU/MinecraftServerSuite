@@ -5,13 +5,13 @@ function includeScript ()
 {
 	includeScript="$1"
 	includeLocation="$2"
-	thisScript="./mcmanager"
-	mainCode=$(cat ./mcmanager)
+	mainScript="$3"
+	mainCode=$(cat $mainScript)
 	includeCode=$(cat $includeScript)
 
 	# Find include location
 	includePoint=$(awk -v a="$mainCode" -v b="$includeLocation" 'BEGIN{print index(a,b)}')  &>> /dev/null
-	afterInclude=$(expr $includePoint + ${#includeLocation})
+	afterInclude=$(expr $includePoint + ${#includeLocation} + 1)
 
 	before=${mainCode:0:$includePoint}
 
@@ -19,7 +19,7 @@ function includeScript ()
 
 	builtCode="$before$includeCode$after"
 	
-	echo "$builtCode"
+	echo "$builtCode" > $mainScript
 }
 
 function includeExample ()
