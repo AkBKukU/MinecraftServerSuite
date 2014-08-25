@@ -4,8 +4,6 @@ sysdate=$(date +"20%y-%m-%d")
 
 mcDir="/var/minecraftd"
 
-echo "Using \"$mcDir\" "
-
 backupDir="/var/minecraftd/backups"
 backupsToKeep=5
 
@@ -15,6 +13,18 @@ backupsToKeep=5
 # cb-beta
 # cb-dev
 serverType="cb-dev"
+
+
+# Include basicFunctions library during development
+#    It's kept seperate to make files easier to read
+if [ -f './basicFunctions.sh' ]
+	then
+
+	source ./basicFunctions.sh
+fi
+
+# Insert basicFunctions library during install
+#[INSERT_FUNCTIONS_HERE]
 
 
 # getNewLink
@@ -337,13 +347,40 @@ function installMinecraft ()
 	ln -s "$mcDir/server.properties" /etc/minecraftd.conf
 
 	# Add ops
-	echo -n "Users to op (Seperate with spaces): "
-	read ops
-	echo "$ops" | sed 's/ /\n/' >> "$mcDir/ops.txt"
-
+	setOPS
 	
 }
 
+# changeMOTD
+# 
+# Sets a new server message of the day
+function changeMOTD ()
+{
+	sed -i 's/motd=.*/motd=test/' server.properties
+}
+
+
+# changeMOTD
+# 
+# Sets a new server message of the day
+function setOPS ()
+{
+	rootTest
+	
+	currentOps=""
+	while read line
+	do
+		line=$(echo "$line" | tr -d ' ')
+			if  [ "$line" != "" ]
+				then
+					currentOps="$currentOps $line"
+			fi
+			
+	done < "$mcDir/ops.txt"
+	currentOps=$(echo $currentOps | sed 's/ *$//')
+	read -e -p "Users to op (Seperate with spaces): " -i "$currentOps" ops
+	echo "$ops" | sed 's/ *$//' | sed 's/ /\n/' > "$mcDir/ops.txt"
+}
 
 # updateMinecraft
 # 
@@ -398,6 +435,7 @@ function autoBackupMinecraft ()
 }
 
 
+
 # updatemcManager
 # 
 # Installs all the mcManager files
@@ -408,13 +446,22 @@ function updatemcManager ()
 
 	# Put files in place
 	cp start-minecraft "$mcDir/minecraftd"
-	ln -s "$mcDir/minecraftd" /usr/sbin/minecraftd
-	cp mcManager "$mcDir/mcManager"
-	ln -s "$mcDir/mcManager"/usr/sbin/mcManager
+	cp mcmanager "$mcDir/mcmanager"
 	cp service-minecraft /etc/init.d/minecraftd
+
+	if [ ! -f "/usr/sbin/mcmanager" ]
+		then
+		ln -s "$mcDir/mcmanager" /usr/sbin/mcmanager
+	fi
+	if [ ! -f "/usr/sbin/minecraftd" ]
+		then
+		ln -s "$mcDir/minecraftd" /usr/sbin/minecraftd
+	fi
+
+	includeScript "./basicFunctions.sh" "#[INSERT_FUNCTIONS_HERE]" > "$mcDir/mcmanager"
 	
 	# Set to run on startup
-	update-rc.d minecraftd defaults
+	update-rc.d minecraftd defaults  &>> /dev/null
 }
 
 
@@ -429,58 +476,6 @@ function status ()
 	echo "Current Version: $(getCurrentVersion) Newest Version: $(getNewestVersion)"
 }
 
-# getYesNo
-# 
-# Asks a given question and only accepts a yes or no answer
-function getYesNo ()
-{	
-	# Set default return
-	output=2
-
-	# Get question to ask
-	message=$1
-
-	# Get a valid response from user
-	valid=false
-	until [ $valid == true ]
-	do
-	
-		# Ask Question and get response
-		echo -n "$message (y/n): "
-		read choice
-
-		# Uppercase response
-		choice=$(echo "${choice^^}" )
-
-		# Test if valid
-		case $choice in
-			"Y"|"YES")
-				output=1
-				valid=true
-				;;
-
-			"N"|"NO")
-				output=0
-				valid=true
-				;;
-		esac
-	done
-
-	# Return answer
-	return $output
-}
-
-# rootTest
-# Tests if the script was run qith root permissions and tells the user they need to if they didn't.
-function rootTest ()
-{
-	if [[ $EUID -ne 0 ]] 
-	then
-   		echo "You need to run this as root to be able to make system changes"
-		echo -e "Run \"sudo $0\" next time"
-		exit 1
-	fi
-}
 
 
 
@@ -514,6 +509,10 @@ case $1 in
 
 	'installMinecraft')
 		installMinecraft
+		;;
+
+	'setOPS')
+		setOPS
 		;;
 
 	'backupMinecraft')
