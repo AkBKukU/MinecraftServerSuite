@@ -9,15 +9,15 @@ This is a set of server tools to make the Minecraft server run like a daemon/ser
 There are many features that will make your job as an admin easier.
 
  - Automatic Backups
-	 - Just put `mcmanager autoBackupMinecraft` into roots cron and forget about it!
+	 - Just put `mcmanager autoBackupMinecraft` into roots [cron][cronGuide] and forget about it!
  - Automatic Backup Management:
-	 - Keeps only the number of backups specified and deletes the old ones.
+	 - Keeps a specified number of backups and deletes the oldest ones.
  - Easy MOTD Configuration:
 	 - Setup a fun and fancy motd for your server using much easier format codes like [Dark Blue].
  - Automatic Updates:
-	 - With `mcmanager autoUpdate` in roots cron it will check for new versions of the server and automatically update to them! Works with Vanilla, Craftbukkit Dev, Craftbukkit Beta, and Craftbukkit Recomended versions so you can use whatever you like!
+	 - With `mcmanager autoUpdate` in roots [cron][cronGuide] it will check for new versions of the server and automatically update to them! Works with Vanilla, Craftbukkit Dev, Craftbukkit Beta, and Craftbukkit Recomended versions so you can use whatever you like!
  - Full Service Integration:
-	 - Control you Minecraft server just like any other linux service
+	 - Control your Minecraft server just like any other linux service
 
 ##Setup##
 This requires that you have `screen`. If you do not, install it with `sudo apt-get install screen`.
@@ -64,6 +64,8 @@ The mcmanger has many useful commands. Most of them are self explanatory but her
  - setOPS:
  	 - Brings up the list of opped players to edit
  - setMOTD: 
- 	 - An editor for the motd property in server.properties. It allows you to use human readable names for the format code (eg, [Dark Blue])
+ 	 - An editor for the motd property in server.properties. It allows you to use human readable names for the format codes (eg, [Dark Blue])
  - status:
  	 - Tells you the current version of the server, the newest available version.
+
+[cronGuide]: http://www.adminschoice.com/crontab-quick-reference/ "What is Cron?"
