@@ -38,7 +38,7 @@ if [ -f './webDataParsing.sh' ]
 fi
 
 # Insert basicFunctions library during install
-#[INSERT_WEB_FUNCTIONS_HERE]
+#[INSERT_WEB_FUNCTIONS_HERE]   
 
 
 # Include basicFunctions library during development
@@ -50,7 +50,7 @@ if [ -f './motd.sh' ]
 fi
 
 # Insert basicFunctions library during install
-#[INSERT_MOTD_FUNCTIONS_HERE]
+#[INSERT_MOTD_FUNCTIONS_HERE]    
 
 
 # getCurrentVersion
@@ -155,6 +155,9 @@ function installMinecraft ()
 
 	# Add ops
 	setOPS
+
+	# set MOTD
+	setMOTD
 	
 }
 
@@ -165,9 +168,10 @@ function setMOTD ()
 {
 	rootTest
 	echo "Edit MOTD:"
-	currentMOTD=$(cat "$mcDir/server.properties" | grep motd | sed 's/motd=//')
+	currentMOTD=$(convertMOTDfromFile "$(cat "$mcDir/server.properties" | grep motd | sed 's/^motd=//')")
 	read -eri "$currentMOTD" motd
-	sed -i 's/motd=.*/motd='\'"$motd"\''/' "$mcDir/server.properties"
+	motd=$(convertMOTDtoFile "$motd")
+	sed -i s/'motd=.*'/'motd='"$motd"/ "$mcDir/server.properties"
 }
 
 
@@ -278,8 +282,8 @@ function updatemcManager ()
 	fi
 
 	includeScript "./basicFunctions.sh" "#[INSERT_FUNCTIONS_HERE]" "$mcDir/mcmanager"
-	includeScript "./webDataParsing.sh" "#[INSERT_WEB_FUNCTIONS_HERE]" "$mcDir/mcmanager"
-	includeScript "./motd.sh" "#[INSERT_MOTD_FUNCTIONS_HERE]" "$mcDir/mcmanager"
+	includeScript "./webDataParsing.sh" "#[INSERT_WEB_FUNCTIONS_HERE]   " "$mcDir/mcmanager"
+	includeScript "./motd.sh" "#[INSERT_MOTD_FUNCTIONS_HERE]    " "$mcDir/mcmanager"
 	
 	# Set to run on startup
 	update-rc.d minecraftd defaults  &>> /dev/null

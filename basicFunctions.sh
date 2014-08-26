@@ -10,14 +10,16 @@ function includeScript ()
 	includeCode=$(cat $includeScript)
 
 	# Find include location
-	includePoint=$(awk -v a="$mainCode" -v b="$includeLocation" 'BEGIN{print index(a,b)}')  &>> /dev/null
-	afterInclude=$(expr $includePoint + ${#includeLocation} + 1)
+	includePoint=$(awk -v a="$mainCode" -v b="$includeLocation" 'BEGIN{print index(a,b)}')  2> /dev/null
+	afterInclude=$(expr $includePoint + ${#includeLocation} - 1 )
 
 	before=${mainCode:0:$includePoint}
 
 	after=${mainCode:afterInclude}
 
-	builtCode="$before$includeCode$after"
+	nl=$'\n'
+
+	builtCode="$before$nl$includeCode$after"
 	
 	echo "$builtCode" > $mainScript
 }
@@ -36,7 +38,7 @@ function includeExample ()
 	# Insert basicFunctions library during install
 	#[INSERT_FUNCTIONS_HERE]
 
-	includeScript "./basicFunctions.sh" "#[INSERT_FUNCTIONS_HERE]" > "$mcDir/mcmanager"
+	includeScript "./basicFunctions.sh" "#[INSERT_FUNCTIONS_HERE]" "$mcDir/mcmanager"
 }
 
 
