@@ -14,7 +14,7 @@ backupsToKeep=5
 # cb-rb
 # cb-beta
 # cb-dev
-serverType="cb-dev"
+serverType="vanilla"
 
 
 # Include basicFunctions library during development
@@ -298,7 +298,7 @@ function status ()
 
 	rootTest
 
-	echo "Current Version: $(getCurrentVersion) Newest Version: $(getNewestVersion)"
+	echo "Current Version: $(getCurrentVersion) Newest Version: $(getNewestVersion). $(checkForUpdate)"
 }
 
 
@@ -357,7 +357,7 @@ case $1 in
 		;;
 
 	'status')
-		updatemcManager
+		status
 		;;
 
 	*)
