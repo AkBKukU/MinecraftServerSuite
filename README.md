@@ -17,7 +17,7 @@ There are many features that will make your job as an admin easier.
  - Automatic Updates:
 	 - With `mcmanager autoUpdate` in roots [cron][cronGuide] it will check for new versions of the server and automatically update to them! Works with Vanilla, Craftbukkit Dev, Craftbukkit Beta, and Craftbukkit Recomended versions so you can use whatever you like!
  - Full Service Integration:
-	 - Control your Minecraft server just like any other linux service
+	 - Control your Minecraft server just like any other linux [service][serviceGuide]
 
 ##Setup##
 This requires that you have `screen`. If you do not, install it with `sudo apt-get install screen`.
@@ -33,7 +33,7 @@ This requires that you have `screen`. If you do not, install it with `sudo apt-g
 That's all there is to the basic setup. 
 
 ##Commands##
-The service will accept the following commands: start, stop, status, restart, console. Run them like this `sudo service minecraftd start`
+The [service][serviceGuide] will accept the following commands: start, stop, status, restart, console. Run them like this `sudo service minecraftd start`
 
  - start:
 	 - Runs the server if it's not running.
@@ -68,4 +68,5 @@ The mcmanger has many useful commands. Most of them are self explanatory but her
  - status:
  	 - Tells you the current version of the server, the newest available version.
 
-[cronGuide]: http://www.adminschoice.com/crontab-quick-reference/ "What is Cron?"
+[cronGuide]: http://www.adminschoice.com/crontab-quick-reference/ "What is Cron/Crontab?"
+[serviceGuide]: http://linux.about.com/od/lts_guide/a/gdelts36.htm "What is a service?"
