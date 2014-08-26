@@ -5,7 +5,7 @@ systime=$(date +"%T")
 
 mcDir="/var/minecraftd"
 
-backupDir="/var/minecraftd/backups"
+backupDir="/var/mcsbackups"
 backupsToKeep=5
 
 
@@ -17,39 +17,37 @@ backupsToKeep=5
 serverType="vanilla"
 
 
-# Include basicFunctions library during development
-#    It's kept seperate to make files easier to read
+# Include library files during development
+#    Comments are defined to have the files injected on install
+
+# basicFunctions
+#  Contains general functions
 if [ -f './basicFunctions.sh' ]
 	then
-
 	source ./basicFunctions.sh
 fi
 
-# Insert basicFunctions library during install
 #[INSERT_FUNCTIONS_HERE]
 
 
-# Include webDataParsing library during development
-#    It's kept seperate to make files easier to read
+# webDataParsing
+#  Reads web pages to get cersion numbers and download links
 if [ -f './webDataParsing.sh' ]
 	then
-
 	source ./webDataParsing.sh
 fi
 
-# Insert basicFunctions library during install
 #[INSERT_WEB_FUNCTIONS_HERE]   
 
 
-# Include basicFunctions library during development
-#    It's kept seperate to make files easier to read
+# motd
+#  Formats the motd value for server.properties
 if [ -f './motd.sh' ]
 	then
-
 	source ./motd.sh
 fi
 
-# Insert basicFunctions library during install
+
 #[INSERT_MOTD_FUNCTIONS_HERE]    
 
 
@@ -119,13 +117,13 @@ function installMinecraft ()
 
 	rootTest
 
-	# Setup /var/minecraftd
+	# Setup directory for the server
 	mkdir "$mcDir"
 
 	# Download program
 	updateMinecraft
 
-	# Put files in place
+	# Put managment files in place
 	updatemcManager
 
 	# Accept EULA
@@ -167,21 +165,55 @@ function installMinecraft ()
 function setMOTD ()
 {
 	rootTest
+
+	 
+echo "This uses the offical names of the format codes to make it easier to edit the motd. Enter the format you want in brackets like this:
+[Dark Blue]Mine[Green]Craft [Reset][Italic]Rules!
+
+Color Codes:
+[Black]			[White]
+[Dark Gray]		[Gray]
+[Dark Blue]		[Blue]
+[Dark Green]		[Green]
+[Dark Aqua]		[Aqua]
+[Dark Red]		[Red]
+[Dark Purple]		[Light Purple]
+[Gold]			[Yellow]
+
+Style Codes:
+[Obfuscated]		[Bold]
+[Strikethrough]		[Underline]
+[Italic]		[Reset]
+
+Remeber to use [Reset] to remove color and style formats after you use them.
+"
+
 	echo "Edit MOTD:"
+	# Get current motd and convert it to the easy to edit format
 	currentMOTD=$(convertMOTDfromFile "$(cat "$mcDir/server.properties" | grep motd | sed 's/^motd=//')")
+
+	# Get new motd
 	read -eri "$currentMOTD" motd
+
+	# Convert new motd to the server.properties format
 	motd=$(convertMOTDtoFile "$motd")
+
+	# Replace old motd int server.properties
 	sed -i s/'motd=.*'/'motd='"$motd"/ "$mcDir/server.properties"
 }
 
 
-# changeMOTD
+# setOPS
 # 
-# Sets a new server message of the day
+# Configure admins for the server
 function setOPS ()
 {
+
+	# TODO: Rewrite to use new UUID system and ops.json
+
 	rootTest
 	
+	# Read current admins from ops.txt
 	currentOps=""
 	while read line
 	do
@@ -192,8 +224,14 @@ function setOPS ()
 			fi
 			
 	done < "$mcDir/ops.txt"
+
+	# Replacenewlines with spaces
 	currentOps=$(echo $currentOps | sed 's/ *$//')
+
+	# Get ops from user
 	read -e -p "Users to op (Seperate with spaces): " -i "$currentOps" ops
+
+	# Replace spaces with newlines and write to ops.txt
 	echo "$ops" | sed 's/ *$//' | sed 's/ /\n/' > "$mcDir/ops.txt"
 }
 
@@ -220,9 +258,16 @@ function backupMinecraft ()
 
 	rootTest
 
-	mkdir $backupDir
+	# Test if the backups folder exists and create it if not
+	if [ ! -d $backupDir ]
+		then
+		mkdir $backupDir
+	fi
 
+	# Generate back name from date and version
 	backupName="$sysdate-$(getCurrentVersion)-Backup"
+
+	# Compress the Minecraft server directory and store it in the backups folder
 	tar -czf $backupDir/$backupName.tar.gz $mcDir
 }
 
@@ -238,6 +283,7 @@ function autoBackupMinecraft ()
 
 	cd $backupDir
 
+	# Test if there are more backups than allowed and remove old one if there are
 	files=(*)
 	numfiles=${#files[@]}
 	echo "$backupsToKeep < $numfiles"
@@ -253,7 +299,9 @@ function autoBackupMinecraft ()
 
 # updatemcManager
 # 
-# Installs all the mcManager files
+# Installs all the mcmanager files
+#
+# This should not be run from the installed version. It is only used during setup and to update from the git files
 function updatemcManager ()
 {
 
@@ -264,6 +312,7 @@ function updatemcManager ()
 	cp "./mcmanager" "$mcDir/mcmanager"
 	cp service-minecraft /etc/init.d/minecraftd
 
+	# Setup the script to enable auto completion of mcmanger arguments
 	cp "./autocomplete" "$mcDir/autocomplete"
 	if grep -q "#mcmanager autocomplete" "/etc/bash.bashrc"
 		then
@@ -272,6 +321,7 @@ function updatemcManager ()
 		echo "source $mcDir/autocomplete #mcmanager autocomplete" >> "/etc/bash.bashrc"
 	fi
 
+	# Setup symboliclinks to make commands runnable from anywhere
 	if [ ! -f "/usr/sbin/mcmanager" ]
 		then
 		ln -s "$mcDir/mcmanager" /usr/sbin/mcmanager
@@ -281,6 +331,7 @@ function updatemcManager ()
 		ln -s "$mcDir/minecraftd" /usr/sbin/minecraftd
 	fi
 
+	# Build full mcmanger script during install
 	includeScript "./basicFunctions.sh" "#[INSERT_FUNCTIONS_HERE]" "$mcDir/mcmanager"
 	includeScript "./webDataParsing.sh" "#[INSERT_WEB_FUNCTIONS_HERE]   " "$mcDir/mcmanager"
 	includeScript "./motd.sh" "#[INSERT_MOTD_FUNCTIONS_HERE]    " "$mcDir/mcmanager"
@@ -361,7 +412,7 @@ case $1 in
 		;;
 
 	*)
-	    echo "Usage: $0 {getNewLink|getNewestVersion|getCurrentVersion|checkForUpdate|autoUpdate|updateMinecraft|installMinecraft|setOPS|setMOTD|backupMinecraft|autoBackupMinecraft|updatemcManager|status}" >&2
+	    echo "Usage: $0 {getNewLink|getNewestVersion|getCurrentVersion|checkForUpdate|autoUpdate|updateMinecraft|installMinecraft|setOPS|setMOTD|backupMinecraft|autoBackupMinecraft|status}" >&2
 	    exit 3
 		;;
 esac

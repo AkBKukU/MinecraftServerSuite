@@ -1,6 +1,10 @@
+# _mcmanager_complete
+# 
+# Allows mcmanager to have auto-completing arguments
 _mcmanager_complete()
 {	
-    local COMPLETES="getNewLink getNewestVersion getCurrentVersion checkForUpdate autoUpdate updateMinecraft installMinecraft setOPS setMOTD backupMinecraft autoBackupMinecraft updatemcManager status"
+	# Set arguments to complete
+    local COMPLETES="getNewLink getNewestVersion getCurrentVersion checkForUpdate autoUpdate updateMinecraft installMinecraft setOPS setMOTD backupMinecraft autoBackupMinecraft status"
 
     # we put the completions into $COMPREPLY using compgen
     COMPREPLY=( $(compgen -W "$COMPLETES" -- ${COMP_WORDS[COMP_CWORD]}) )

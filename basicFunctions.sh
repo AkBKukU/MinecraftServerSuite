@@ -3,24 +3,28 @@
 # Embeds the specified script where the given comment is first located
 function includeScript ()
 {
+	# Get passed arguments
 	includeScript="$1"
 	includeLocation="$2"
 	mainScript="$3"
+
+	# Get code
 	mainCode=$(cat $mainScript)
 	includeCode=$(cat $includeScript)
 
 	# Find include location
 	includePoint=$(awk -v a="$mainCode" -v b="$includeLocation" 'BEGIN{print index(a,b)}')  2> /dev/null
 	afterInclude=$(expr $includePoint + ${#includeLocation} - 1 )
-
 	before=${mainCode:0:$includePoint}
-
 	after=${mainCode:afterInclude}
 
+	# Set newline character
 	nl=$'\n'
 
+	# Put it all together
 	builtCode="$before$nl$includeCode$after"
 	
+	# Update the file
 	echo "$builtCode" > $mainScript
 }
 

@@ -35,8 +35,7 @@ function convertMOTDfromFile ()
 {
 	output="$1"
 	
-
-
+	# Color Codes
 	output="$(echo "$output" | sed 's/\\u00A70/\[Black\]/g')"
 	output="$(echo "$output" | sed 's/\\u00A71/\[Dark Blue\]/g')"
 	output="$(echo "$output" | sed 's/\\u00A72/\[Dark Green\]/g')"

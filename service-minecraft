@@ -5,7 +5,7 @@
 # Required-Stop:     $local_fs $remote_fs $network $syslog $named
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# X-Interactive:     true
+# X-Interactive:     false
 # Short-Description: Start/stop Minecraft server
 # Description:       Start/stop the Minecraft server
 ### END INIT INFO
