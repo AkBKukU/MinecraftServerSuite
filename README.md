@@ -4,6 +4,11 @@ MinecraftServerSuite
 This is a set of server tools to make the Minecraft server run like a daemon/service on Ubuntu Linux and to be easier to maintain. This is meant to be an all in one solution for managing the files of a Minecraft server. It will install Minecraft and configure it to run as a service. 
 
 
+ALERT
+-----
+This is currently out of date and will be updated in the coming week. The webpages it uses to find current server version information and download the jars have changed and the webscraping tactics will be updated to accomidate them. 
+
+
 ##Features##
 
 There are many features that will make your job as an admin easier.
